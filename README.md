@@ -1,103 +1,97 @@
-# European Health Equity Atlas (WHO‑grade demo)
+# European Health Equity Atlas  
+*A policy-grade analytics platform for measuring structural healthcare inequality across Europe*
 
-This project is a **public healthcare analytics suite** focused on Europe:
-- **EHEI (European Healthcare Equity Index)** dashboards
-- Country comparisons
-- Reproducible reporting
-- **WHO‑grade transparency**: clear provenance + refresh status + documented indicator slices
+---
 
-## What you removed (as requested)
-- ✅ Healthcare “game/simulator” tables + UI (it was incomplete and causing build breakage)
-- ✅ Anything “manus” in app logic (only harmless `pnpm-lock.yaml` mentions remain)
+## Overview
 
-## Does the data update automatically?
-**Not by itself.**
+The European Health Equity Atlas is a full-stack analytics platform designed to quantify structural disparities across European healthcare systems using publicly available statistical data.
 
-Right now, the UI will **show the last successful refresh** (or “—” if never synced).
+At its core is the **European Healthcare Equity Index (EHEI)** — a composite index built from Eurostat indicators that captures inequality across:
 
-To get regular updates, you must run the sync pipeline on a schedule (cron / GitHub Actions / server cron).
+- Physician distribution  
+- Infrastructure capacity  
+- Health outcomes  
+- COVID recovery performance  
 
-## How updates work (WHO‑grade)
-### 1) Source + provenance
-- `sync_status` table records `lastAttemptAt`, `lastSuccessAt`, `status`, `latestYearLoaded`, and a short `details` string.
-- The dashboard calls `healthcare.syncStatus` and displays this publicly.
+The platform transforms raw statistical infrastructure into a structured, interpretable equity framework suitable for research, policy exploration, and advanced analytics portfolios.
 
-### 2) Refresh pipeline
-A Eurostat sync module lives here:
-- `server/sync/eurostat.ts`
+A live deployment link will be provided once production hosting is finalized.
 
-It pulls selected indicators from Eurostat’s dissemination API (dataset codes are documented inline).
+---
 
-### 3) Triggering sync (recommended)
-A simple REST endpoint is included for cron jobs:
+## The European Healthcare Equity Index (EHEI)
 
-**POST** `/api/sync/eurostat`
-- Header: `x-sync-token: <SYNC_TOKEN>`
-- Body: `{ "year": 2024 }`
+The EHEI is a weighted composite index (0–100 scale) designed to measure relative inequality across European healthcare systems.
 
-Example:
-```bash
-curl -X POST "http://localhost:3000/api/sync/eurostat" \
-  -H "Content-Type: application/json" \
-  -H "x-sync-token: $SYNC_TOKEN" \
-  -d '{"year": 2023}'
-```
+**Higher scores indicate greater structural disparity.**
 
-## Environment variables
-Create `.env` (or set in your deployment platform):
+### Index Components
 
-```bash
-# Database
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=yourpassword
-DB_NAME=healthcare
+| Component                  | Weight |
+|---------------------------|--------|
+| Physician Distribution     | 40%    |
+| Infrastructure Capacity    | 30%    |
+| Health Outcomes            | 20%    |
+| COVID Recovery             | 10%    |
 
-# Optional: change Eurostat base
-EUROSTAT_BASE_URL=https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data
+All indicators are normalized prior to aggregation.  
+Weighting logic and transformation methodology are documented in the platform’s Methodology section.
 
-# Required for sync endpoints
-SYNC_TOKEN=your-long-random-token
-```
+---
 
-## Database notes (important)
-The sync uses **idempotent upserts**, which require a **unique key** on `(countryId, year)`.
+## Platform Capabilities
 
-Run this once:
+The Atlas provides:
 
-```sql
-ALTER TABLE healthcare_metrics
-  ADD UNIQUE KEY uk_metrics_country_year (countryId, year);
+- Composite equity scoring (EHEI)
+- Country-level breakdowns
+- Side-by-side country comparison
+- Multi-dimensional radar visualization
+- Outcome-to-expenditure efficiency metrics
+- Trend analysis over time
+- Public data refresh status
+- Transparent methodology documentation
 
-CREATE TABLE IF NOT EXISTS sync_status (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  source VARCHAR(32) NOT NULL UNIQUE,
-  lastAttemptAt TIMESTAMP NULL,
-  lastSuccessAt TIMESTAMP NULL,
-  status ENUM('ok','failed','never') NOT NULL DEFAULT 'never',
-  latestYearLoaded INT NULL,
-  details TEXT NULL,
-  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-```
+The objective is not only visualization, but structured transparency.
 
-## Running locally
-```bash
-pnpm install
-pnpm dev
-```
+---
 
-Then open:
-- `/` Home
-- `/dashboard` Overview + provenance
-- `/ehei` EHEI dashboard
-- `/comparison` Country comparison
-- `/methodology` Methodology
+## Data Sources
 
-## WHO‑grade checklist (what this gives you)
-- **Traceability**: dataset codes + parameter slices are in one place (`server/sync/eurostat.ts`).
-- **Freshness visibility**: dashboard shows last refresh and failure reason.
-- **Reproducible refresh**: one endpoint to re-run sync for a given year.
-- **Extensible**: you can add more sources (WHO Gateway, OECD) as separate sync modules and record each in `sync_status`.
+Primary data source:
+
+- **Eurostat Dissemination API**
+
+Indicator selection, dataset codes, and parameter slices are documented within the synchronization module.
+
+The system records:
+
+- Last refresh attempt
+- Last successful refresh
+- Year loaded
+- Sync status
+- Source provenance
+
+This ensures reproducibility and refresh traceability.
+
+---
+
+## Architecture
+
+The project follows a modular full-stack architecture:
+
+- **Frontend:** React + TypeScript
+- **Backend:** Node.js API layer
+- **Database:** Structured metric storage with idempotent upserts
+- **Sync Module:** Eurostat ingestion pipeline
+- **Deployment Target:** Vercel
+
+Data synchronization is designed to be scheduled via cron jobs or CI pipelines.
+
+---
+
+## Environment Variables
+
+Create a `.env` file (or configure via deployment platform):
 
