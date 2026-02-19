@@ -1,0 +1,16 @@
+--- server/simulator.test.ts
++++ server/simulator.test.ts
+@@ -289,12 +289,12 @@ describe("Healthcare System Simulator", () => {
+       expect(state.hospitalBeds).toBeGreaterThanOrEqual(0);
+     });
+ 
+-    it("should handle zero budget allocation", () => {
++    it("should handle none decision type", () => {
+       const state = { ...mockGameState };
+       const decision: Decision = {
+         type: "none",
+         budgetAllocated: 0,
+         description: "No action",
+       };
+ 
+       const outcome = processDecision(state, decision);

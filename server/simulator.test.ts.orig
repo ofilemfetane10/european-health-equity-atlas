@@ -1,0 +1,324 @@
+import { describe, it, expect } from "vitest";
+import {
+  processDecision,
+  advanceYear,
+  calculateFinalScore,
+  getAvailableDecisions,
+  getRecommendations,
+  type GameState,
+  type Decision,
+} from "./simulator";
+
+const mockGameState: GameState = {
+  year: 2024,
+  endYear: 2030,
+  budget: 8500,
+  lifeExpectancy: 77,
+  lifeExpectancyDecimal: 6,
+  physicianDensity: 206,
+  hospitalBeds: 280,
+  score: 0,
+  decisions: [],
+};
+
+describe("Healthcare System Simulator", () => {
+  describe("processDecision", () => {
+    it("should process train_physicians decision", () => {
+      const state = { ...mockGameState };
+      const decision: Decision = {
+        type: "train_physicians",
+        budgetAllocated: 500,
+        description: "Train 5,000 physicians",
+      };
+
+      const outcome = processDecision(state, decision);
+
+      expect(outcome.year).toBe(2024);
+      expect(outcome.decision.type).toBe("train_physicians");
+      expect(state.budget).toBe(8000); // 8500 - 500
+      expect(state.physicianDensity).toBeGreaterThan(206);
+      expect(outcome.lifeExpectancyGain).toBeGreaterThan(0);
+    });
+
+    it("should process prevention_campaign decision", () => {
+      const state = { ...mockGameState };
+      const decision: Decision = {
+        type: "prevention_campaign",
+        budgetAllocated: 200,
+        description: "Launch prevention campaign",
+      };
+
+      const outcome = processDecision(state, decision);
+
+      expect(state.budget).toBe(8300); // 8500 - 200
+      expect(outcome.lifeExpectancyGain).toBeGreaterThan(0.2); // Prevention shows quick gains
+    });
+
+    it("should throw error for insufficient budget", () => {
+      const state = { ...mockGameState, budget: 100 };
+      const decision: Decision = {
+        type: "train_physicians",
+        budgetAllocated: 500,
+        description: "Train physicians",
+      };
+
+      expect(() => processDecision(state, decision)).toThrow("Insufficient budget");
+    });
+
+    it("should throw error for budget below minimum", () => {
+      const state = { ...mockGameState };
+      const decision: Decision = {
+        type: "train_physicians",
+        budgetAllocated: 100, // Below minimum of 200
+        description: "Train physicians",
+      };
+
+      expect(() => processDecision(state, decision)).toThrow("Budget too low");
+    });
+
+    it("should throw error for budget above maximum", () => {
+      const state = { ...mockGameState, budget: 10000 };
+      const decision: Decision = {
+        type: "train_physicians",
+        budgetAllocated: 5000, // Above maximum of 3000
+        description: "Train physicians",
+      };
+
+      expect(() => processDecision(state, decision)).toThrow("Budget too high");
+    });
+
+    it("should process build_hospitals decision", () => {
+      const state = { ...mockGameState };
+      const decision: Decision = {
+        type: "build_hospitals",
+        budgetAllocated: 1000,
+        description: "Build hospitals",
+      };
+
+      const outcome = processDecision(state, decision);
+
+      expect(state.hospitalBeds).toBeGreaterThan(280);
+      expect(outcome.lifeExpectancyGain).toBeLessThan(0.1); // Minimal impact
+    });
+
+    it("should handle random events", () => {
+      const state = { ...mockGameState };
+      const decision: Decision = {
+        type: "prevention_campaign",
+        budgetAllocated: 200,
+        description: "Prevention campaign",
+      };
+
+      // Mock a random event by calling processDecision multiple times
+      const outcome = processDecision(state, decision, {
+        type: "pandemic",
+        impact: {
+          lifeExpectancyLoss: 1.2,
+          budgetImpact: -1000,
+          description: "Pandemic outbreak",
+        },
+      });
+
+      // Life expectancy should be reduced due to pandemic
+      expect(outcome.feedback).toContain("Pandemic");
+    });
+  });
+
+  describe("advanceYear", () => {
+    it("should advance year by 1", () => {
+      const state = { ...mockGameState };
+      advanceYear(state);
+
+      expect(state.year).toBe(2025);
+    });
+
+    it("should apply natural improvement", () => {
+      const state = { ...mockGameState };
+      const initialLE = state.lifeExpectancy + state.lifeExpectancyDecimal / 10;
+      advanceYear(state);
+
+      const newLE = state.lifeExpectancy + state.lifeExpectancyDecimal / 10;
+      expect(newLE).toBeGreaterThanOrEqual(initialLE);
+    });
+
+    it("should return feedback string", () => {
+      const state = { ...mockGameState };
+      const result = advanceYear(state);
+
+      expect(result.feedback).toContain("Year 2025");
+      expect(result.feedback).toContain("Budget remaining");
+    });
+  });
+
+  describe("calculateFinalScore", () => {
+    it("should calculate positive score for life expectancy gains", () => {
+      const state = { ...mockGameState, lifeExpectancy: 80, lifeExpectancyDecimal: 0, score: 1000 };
+      const initialLE = 77.6;
+
+      const finalScore = calculateFinalScore(state, initialLE);
+
+      expect(finalScore).toBeGreaterThan(0);
+    });
+
+    it("should include efficiency bonus", () => {
+      const state = { ...mockGameState, lifeExpectancy: 79, lifeExpectancyDecimal: 0, score: 5000 };
+      const initialLE = 77.6;
+
+      const finalScore = calculateFinalScore(state, initialLE);
+
+      expect(finalScore).toBeGreaterThan(1000); // Should include efficiency bonus
+    });
+
+    it("should handle no improvement", () => {
+      const state = { ...mockGameState, score: 0 };
+      const initialLE = 77.6;
+
+      const finalScore = calculateFinalScore(state, initialLE);
+
+      expect(finalScore).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe("getAvailableDecisions", () => {
+    it("should return available decisions based on budget", () => {
+      const state = { ...mockGameState, budget: 5000 };
+      const available = getAvailableDecisions(state);
+
+      expect(available.length).toBeGreaterThan(0);
+      expect(available).toContain("train_physicians");
+      expect(available).toContain("prevention_campaign");
+    });
+
+    it("should return none when budget is too low", () => {
+      const state = { ...mockGameState, budget: 50 };
+      const available = getAvailableDecisions(state);
+
+      expect(available).toContain("none");
+    });
+
+    it("should not include none when other decisions available", () => {
+      const state = { ...mockGameState, budget: 5000 };
+      const available = getAvailableDecisions(state);
+
+      expect(available).not.toContain("none");
+    });
+  });
+
+  describe("getRecommendations", () => {
+    it("should recommend physician training for low density", () => {
+      const state = { ...mockGameState, physicianDensity: 200 };
+      const recommendations = getRecommendations(state);
+
+      expect(recommendations.some(r => r.includes("Physician density"))).toBe(true);
+    });
+
+    it("should recommend closing hospitals for high bed density", () => {
+      const state = { ...mockGameState, hospitalBeds: 600 };
+      const recommendations = getRecommendations(state);
+
+      expect(recommendations.some(r => r.includes("Hospital beds"))).toBe(true);
+    });
+
+    it("should recommend prevention for low life expectancy", () => {
+      const state = { ...mockGameState, lifeExpectancy: 70 };
+      const recommendations = getRecommendations(state);
+
+      expect(recommendations.some(r => r.includes("Prevention"))).toBe(true);
+    });
+
+    it("should warn about low budget", () => {
+      const state = { ...mockGameState, budget: 200 };
+      const recommendations = getRecommendations(state);
+
+      expect(recommendations.some(r => r.includes("limited"))).toBe(true);
+    });
+
+    it("should recommend long-term investment for high budget", () => {
+      const state = { ...mockGameState, budget: 8000 };
+      const recommendations = getRecommendations(state);
+
+      expect(recommendations.some(r => r.includes("long-term"))).toBe(true);
+    });
+  });
+
+  describe("Game flow", () => {
+    it("should complete a full game cycle", () => {
+      let state: GameState = { ...mockGameState };
+
+      // Year 1: Train physicians
+      const decision1: Decision = {
+        type: "train_physicians",
+        budgetAllocated: 500,
+        description: "Train physicians",
+      };
+      processDecision(state, decision1);
+
+      // Year 2: Prevention campaign
+      advanceYear(state);
+      const decision2: Decision = {
+        type: "prevention_campaign",
+        budgetAllocated: 200,
+        description: "Prevention campaign",
+      };
+      processDecision(state, decision2);
+
+      // Year 3: Digital health
+      advanceYear(state);
+      const decision3: Decision = {
+        type: "digital_health",
+        budgetAllocated: 300,
+        description: "Digital health",
+      };
+      processDecision(state, decision3);
+
+      // Check final state
+      expect(state.year).toBe(2026);
+      expect(state.budget).toBeLessThan(8500);
+      expect(state.lifeExpectancy).toBeGreaterThan(77);
+      expect(state.physicianDensity).toBeGreaterThan(206);
+      expect(state.score).toBeGreaterThan(0);
+    });
+  });
+
+  describe("Edge cases", () => {
+    it("should handle zero budget allocation", () => {
+      const state = { ...mockGameState };
+      const decision: Decision = {
+        type: "none",
+        budgetAllocated: 0,
+        description: "No action",
+      };
+
+      const outcome = processDecision(state, decision);
+
+      expect(state.budget).toBe(8500); // No change
+      expect(outcome.lifeExpectancyGain).toBeLessThan(0.02);
+    });
+
+    it("should not allow negative physician density", () => {
+      const state = { ...mockGameState, physicianDensity: 10 };
+      const decision: Decision = {
+        type: "close_hospitals",
+        budgetAllocated: 500,
+        description: "Close hospitals",
+      };
+
+      processDecision(state, decision);
+
+      expect(state.physicianDensity).toBeGreaterThanOrEqual(0);
+    });
+
+    it("should not allow negative hospital beds", () => {
+      const state = { ...mockGameState, hospitalBeds: 10 };
+      const decision: Decision = {
+        type: "digital_health",
+        budgetAllocated: 1000,
+        description: "Digital health",
+      };
+
+      processDecision(state, decision);
+
+      expect(state.hospitalBeds).toBeGreaterThanOrEqual(0);
+    });
+  });
+});
