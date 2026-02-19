@@ -16,8 +16,6 @@ At its core is the **European Healthcare Equity Index (EHEI)** — a composite i
 
 The platform transforms raw statistical infrastructure into a structured, interpretable equity framework suitable for research, policy exploration, and advanced analytics portfolios.
 
-A live deployment link will be provided once production hosting is finalized.
-
 ---
 
 ## The European Healthcare Equity Index (EHEI)
