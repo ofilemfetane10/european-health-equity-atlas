@@ -1,8 +1,6 @@
 # European Health Equity Atlas  
 *A policy-grade analytics platform for measuring structural healthcare inequality across Europe*
 
----
-
 ## Overview
 
 The European Health Equity Atlas is a full-stack analytics platform designed to quantify structural disparities across European healthcare systems using publicly available statistical data.
@@ -15,8 +13,6 @@ At its core is the **European Healthcare Equity Index (EHEI)** — a composite i
 - COVID recovery performance  
 
 The platform transforms raw statistical infrastructure into a structured, interpretable equity framework suitable for research, policy exploration, and advanced analytics portfolios.
-
----
 
 ## The European Healthcare Equity Index (EHEI)
 
@@ -36,7 +32,6 @@ The EHEI is a weighted composite index (0–100 scale) designed to measure relat
 All indicators are normalized prior to aggregation.  
 Weighting logic and transformation methodology are documented in the platform’s Methodology section.
 
----
 
 ## Platform Capabilities
 
@@ -53,7 +48,6 @@ The Atlas provides:
 
 The objective is not only visualization, but structured transparency.
 
----
 
 ## Data Sources
 
@@ -72,8 +66,6 @@ The system records:
 - Source provenance
 
 This ensures reproducibility and refresh traceability.
-
----
 
 ## Architecture
 
