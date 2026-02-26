@@ -75,7 +75,6 @@ The project follows a modular full-stack architecture:
 - **Backend:** Node.js API layer
 - **Database:** Structured metric storage with idempotent upserts
 - **Sync Module:** Eurostat ingestion pipeline
-- **Deployment Target:** Vercel
 
 Data synchronization is designed to be scheduled via cron jobs or CI pipelines.
 
